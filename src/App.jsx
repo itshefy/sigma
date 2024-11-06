@@ -8,11 +8,23 @@ import { Input } from './components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs';
 import { ScrollArea } from './components/ui/scroll-area';
 import { Badge } from './components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel
+} from './components/ui/alert-dialog';
 
 // Custom Components
 import { BrandSignature } from './components/BrandSignature';
 import { InteractiveBackground } from './components/InteractiveBackground';
 import { OriginalBadge } from './components/OriginalBadge';
+import { ShareResults } from './components/ShareResults';
 
 // Data & Utils
 import { SIGMA_DICTIONARY } from './lib/dictionaries/sigma';
@@ -50,6 +62,18 @@ function App() {
 
   const isMobile = useMediaQuery('(max-width: 768px)');
 
+  // Auto-save Effect
+  useEffect(() => {
+    const saveInterval = setInterval(() => {
+      localStorage.setItem('translations', JSON.stringify(translations));
+      localStorage.setItem('score', score.toString());
+      localStorage.setItem('streak', streak.toString());
+      localStorage.setItem('unlockedAchievements', JSON.stringify(unlockedAchievements));
+    }, 1000);
+
+    return () => clearInterval(saveInterval);
+  }, [translations, score, streak, unlockedAchievements]);
+
   // Theme Effect
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
@@ -71,7 +95,7 @@ function App() {
     window.addEventListener('keypress', handleKeyPress);
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [inputText, activeTab]);
-
+// Core Functions
   const handleTranslate = () => {
     if (!inputText.trim()) return;
 
@@ -116,6 +140,11 @@ function App() {
     checkAchievements(newTranslation);
   };
 
+  const clearHistory = () => {
+    setTranslations([]);
+    localStorage.setItem('translations', JSON.stringify([]));
+  };
+
   const checkAchievements = (newTranslation) => {
     const achievementsToUnlock = [];
 
@@ -137,6 +166,34 @@ function App() {
     const uniqueWords = new Set(translations.map(t => t.output.split(' ')).flat());
     if (uniqueWords.size >= 50 && !unlockedAchievements.includes('word_master')) {
       achievementsToUnlock.push(ACHIEVEMENTS.WORD_MASTER);
+    }
+
+    // Daily Dedication
+    const uniqueDays = new Set(
+      translations.map(t => new Date(t.timestamp).toDateString())
+    ).size;
+
+    if (uniqueDays >= 5 && !unlockedAchievements.includes('daily_dedication')) {
+      achievementsToUnlock.push(ACHIEVEMENTS.DAILY_DEDICATION);
+    }
+
+    // Speed Demon
+    const speedTranslations = translations
+      .filter(t => Date.now() - new Date(t.timestamp).getTime() < 300000)
+      .length;
+
+    if (speedTranslations >= 10 && !unlockedAchievements.includes('speed_demon')) {
+      achievementsToUnlock.push(ACHIEVEMENTS.SPEED_DEMON);
+    }
+
+    // Perfect Combo
+    if (streak >= 20 && !unlockedAchievements.includes('perfect_combo')) {
+      achievementsToUnlock.push(ACHIEVEMENTS.PERFECT_COMBO);
+    }
+
+    // Translation Master
+    if (score >= 1000 && !unlockedAchievements.includes('translation_master')) {
+      achievementsToUnlock.push(ACHIEVEMENTS.TRANSLATION_MASTER);
     }
 
     achievementsToUnlock.forEach(achievement => {
@@ -164,7 +221,7 @@ function App() {
     }
   };
 
-  return (
+return (
     <div className={`min-h-screen ${isDarkMode ? "dark" : ""}`}>
       <InteractiveBackground />
 
@@ -308,8 +365,7 @@ function App() {
                     הישגים
                   </TabsTrigger>
                 </TabsList>
-
-                <TabsContent value="translate" className="space-y-6">
+<TabsContent value="translate" className="space-y-6">
                   <div className="flex justify-end">
                     <Button
                       onClick={() => setDirection(prev => prev === "toSigma" ? "fromSigma" : "toSigma")}
@@ -318,6 +374,7 @@ function App() {
                           ? "bg-gray-700 hover:bg-gray-600 text-white"
                           : "bg-gray-100 hover:bg-gray-200 text-gray-900"
                       }`}
+                      dir="rtl"
                     >
                       <span className="relative">
                         {direction === "toSigma" ? "עברית ← סיגמה" : "סיגמה ← עברית"}
@@ -381,6 +438,43 @@ function App() {
                 </TabsContent>
 
                 <TabsContent value="history" className="h-[400px]">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className={`text-lg font-medium ${
+                      isDarkMode ? "text-white" : "text-gray-900"
+                    }`}>
+                      היסטוריית תרגומים
+                    </h2>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          className={`${
+                            isDarkMode
+                              ? "bg-red-900 hover:bg-red-800"
+                              : "bg-red-500 hover:bg-red-600"
+                          } text-white`}
+                        >
+                          נקה היסטוריה
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>האם למחוק את כל ההיסטוריה?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            פעולה זו תמחק את כל היסטוריית התרגומים שלך. לא ניתן לבטל פעולה זו.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>ביטול</AlertDialogCancel>
+                          <AlertDialogAction onClick={clearHistory}>
+                            מחק היסטוריה
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+
                   <ScrollArea className="h-full pr-4">
                     {translations.length > 0 ? (
                       <div className="space-y-4">
@@ -441,8 +535,7 @@ function App() {
                     )}
                   </ScrollArea>
                 </TabsContent>
-
-                <TabsContent value="achievements" className="h-[400px]">
+<TabsContent value="achievements" className="h-[400px]">
                   <ScrollArea className="h-full pr-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {Object.values(ACHIEVEMENTS)
@@ -521,15 +614,25 @@ function App() {
           </Card>
         </main>
 
+        {/* Share Button */}
+        <div className="fixed bottom-20 right-6 z-20">
+          <ShareResults 
+            score={score}
+            achievements={unlockedAchievements}
+          />
+        </div>
+
+        {/* Brand Signature */}
         <BrandSignature />
 
+        {/* Achievement Notification */}
         <AnimatePresence>
           {currentAchievement && (
             <motion.div
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -50 }}
-              className={`fixed bottom-6 right-6 p-4 rounded-lg shadow-lg ${
+              className={`fixed bottom-6 right-6 p-4 rounded-lg shadow-lg z-30 ${
                 isDarkMode
                   ? "bg-yellow-400"
                   : "bg-yellow-500"
@@ -558,12 +661,13 @@ function App() {
           )}
         </AnimatePresence>
 
+        {/* Confetti Effect */}
         {showConfetti && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 pointer-events-none"
+            className="fixed inset-0 pointer-events-none z-50"
           >
             {Array.from({ length: 50 }).map((_, i) => (
               <motion.div
@@ -592,4 +696,3 @@ function App() {
 }
 
 export default App;
-          
