@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { RefreshCw } from 'lucide-react';
 
 // UI Components
 import { Card } from './components/ui/card';
@@ -21,7 +22,7 @@ import {
 } from './components/ui/alert-dialog';
 
 // Custom Components
-import { BrandSignature } from './components/BrandSignature';
+import BrandSignature from './components/BrandSignature';  // שימו לב: רק ייבוא אחד
 import { InteractiveBackground } from './components/InteractiveBackground';
 import { OriginalBadge } from './components/OriginalBadge';
 import { ShareResults } from './components/ShareResults';
@@ -29,6 +30,13 @@ import { ShareResults } from './components/ShareResults';
 // Data & Utils
 import { SIGMA_DICTIONARY } from './lib/dictionaries/sigma';
 import { ACHIEVEMENTS } from './lib/constants/achievements';
+import { EXAMPLE_SENTENCES } from './lib/constants/examples';
+
+// Constants
+const EXAMPLES_TO_SHOW = 3;
+const SAVE_INTERVAL = 1000;
+const ACHIEVEMENT_DISPLAY_DURATION = 3000;
+const CONFETTI_PARTICLE_COUNT = 50;
 
 // Animation Variants
 const pageTransition = {
@@ -36,18 +44,12 @@ const pageTransition = {
   visible: { 
     opacity: 1, 
     y: 0,
-    transition: {
-      duration: 0.4,
-      ease: "easeOut"
-    }
+    transition: { duration: 0.4, ease: "easeOut" }
   },
   exit: { 
     opacity: 0, 
     y: -20,
-    transition: {
-      duration: 0.3,
-      ease: "easeIn"
-    }
+    transition: { duration: 0.3, ease: "easeIn" }
   }
 };
 
@@ -62,107 +64,71 @@ const cardTransition = {
   }
 };
 
-// Example Sentences
-const EXAMPLE_SENTENCES = [
-  {
-    hebrew: "מה המצב אחי, הכל טוב?",
-    sigma: "וואס אפ ברו, אול גוד סקיבידי?"
-  },
-  {
-    hebrew: "אתה פשוט מלך אמיתי",
-    sigma: "יו סימפלי ריל סיגמה קינג"
-  },
-  {
-    hebrew: "זה היה מטורף לגמרי",
-    sigma: "דט וואס סקיבידי קופים"
-  },
-  {
-    hebrew: "אין מצב, אתה גאון",
-    sigma: "נו קאפ פור ריל, יו סיגמה בריין"
-  }
-];
-
-function App() {
-  // State Management
+const App = () => {
+  // Core State
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
+  
   const [inputText, setInputText] = useState('');
   const [outputText, setOutputText] = useState('');
   const [direction, setDirection] = useState('toSigma');
+  const [activeTab, setActiveTab] = useState('translate');
+  
+  // Examples State
+  const [currentExamples, setCurrentExamples] = useState([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Achievement & Score State
   const [score, setScore] = useState(() => {
     const saved = localStorage.getItem('score');
     return saved ? parseInt(saved) : 0;
   });
-  const [translations, setTranslations] = useState(() => {
-    const saved = localStorage.getItem('translations');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [activeTab, setActiveTab] = useState('translate');
+  
   const [currentAchievement, setCurrentAchievement] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [unlockedAchievements, setUnlockedAchievements] = useState(() => {
     const saved = localStorage.getItem('unlockedAchievements');
     return saved ? JSON.parse(saved) : [];
   });
+  
+  // Translation History State
+  const [translations, setTranslations] = useState(() => {
+    const saved = localStorage.getItem('translations');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-// Effects
-  useEffect(() => {
-    const saveInterval = setInterval(() => {
-      localStorage.setItem('translations', JSON.stringify(translations));
-      localStorage.setItem('score', score.toString());
-      localStorage.setItem('unlockedAchievements', JSON.stringify(unlockedAchievements));
-    }, 1000);
+  // Example Management Functions
+  const getRandomExamples = useCallback(() => {
+    const shuffled = [...EXAMPLE_SENTENCES].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, EXAMPLES_TO_SHOW);
+  }, []);
 
-    return () => clearInterval(saveInterval);
-  }, [translations, score, unlockedAchievements]);
-
-  useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
-    const root = document.documentElement;
-    if (isDarkMode) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+  const refreshExamples = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    const refreshButton = document.querySelector('.refresh-button');
+    
+    if (refreshButton) {
+      refreshButton.style.transform = 'rotate(360deg)';
+      refreshButton.style.transition = 'transform 0.5s ease';
     }
     
-    // Smooth transition for theme change
-    root.style.transition = 'background-color 0.3s ease, color 0.3s ease';
-  }, [isDarkMode]);
-
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.key === 'Enter' && inputText && activeTab === 'translate') {
-        handleTranslate();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    setCurrentExamples(getRandomExamples());
+    
+    setTimeout(() => {
+      if (refreshButton) {
+        refreshButton.style.transform = 'rotate(0deg)';
+        refreshButton.style.transition = 'none';
       }
-    };
-
-    window.addEventListener('keypress', handleKeyPress);
-    return () => window.removeEventListener('keypress', handleKeyPress);
-  }, [inputText, activeTab]);
-
-  // Animation Controls
-  const translateControls = {
-    initial: 'hidden',
-    animate: 'visible',
-    exit: 'exit',
-    variants: {
-      hidden: { opacity: 0, y: 20 },
-      visible: { 
-        opacity: 1, 
-        y: 0,
-        transition: { duration: 0.4, ease: "easeOut" }
-      },
-      exit: { 
-        opacity: 0, 
-        y: -20,
-        transition: { duration: 0.3, ease: "easeIn" }
-      }
-    }
+      setIsRefreshing(false);
+    }, 500);
   };
 
-  // Core Functions
+  // Translation Functions
   const handleTranslate = () => {
     if (!inputText.trim()) return;
 
@@ -170,7 +136,6 @@ function App() {
       ? inputText.split(' ').map(word => {
           const lowercaseWord = word.toLowerCase();
           const translation = SIGMA_DICTIONARY[lowercaseWord];
-          // Add glow effect for translated words
           return translation ? `✨${translation}✨` : word;
         }).join(' ')
       : inputText.split(' ').map(word => {
@@ -179,11 +144,8 @@ function App() {
           return regular ? regular[0] : word;
         }).join(' ');
 
-    // Animate output appearance
     setOutputText('');
-    setTimeout(() => {
-      setOutputText(translated);
-    }, 100);
+    setTimeout(() => setOutputText(translated), 100);
     
     const newTranslation = {
       id: Date.now(),
@@ -193,31 +155,35 @@ function App() {
       direction
     };
 
-    // Smooth list update
+    updateTranslationHistory(newTranslation);
+    updateScore();
+    checkAchievements(newTranslation);
+  };
+
+  const updateTranslationHistory = (newTranslation) => {
     setTranslations(prev => {
       const updated = [newTranslation, ...prev].slice(0, 100);
       localStorage.setItem('translations', JSON.stringify(updated));
       return updated;
     });
+  };
 
-    // Score animation
+  const updateScore = () => {
     setScore(prev => {
       const newScore = prev + 10;
-      localStorage.setItem('score', newScore);
-      // Add floating score animation
+      localStorage.setItem('score', newScore.toString());
+      
       const scoreElement = document.createElement('div');
       scoreElement.className = 'floating-score';
       scoreElement.textContent = '+10';
       document.body.appendChild(scoreElement);
       setTimeout(() => scoreElement.remove(), 1000);
+      
       return newScore;
     });
-
-    checkAchievements(newTranslation);
   };
 
   const clearHistory = () => {
-    // Animate list removal
     const listElement = document.querySelector('.history-list');
     if (listElement) {
       listElement.style.transform = 'scale(0.95)';
@@ -230,15 +196,16 @@ function App() {
     }, 300);
   };
 
+  // Achievement Functions
   const checkAchievements = (newTranslation) => {
     const achievementsToUnlock = [];
 
-    // First Translation
+    // First Translation Achievement
     if (translations.length === 0) {
       achievementsToUnlock.push(ACHIEVEMENTS.FIRST_TRANSLATION);
     }
 
-    // Quick Start - Improved timing check
+    // Quick Start Achievement
     const recentTranslations = translations
       .filter(t => Date.now() - new Date(t.timestamp).getTime() < 120000)
       .length;
@@ -247,7 +214,7 @@ function App() {
       achievementsToUnlock.push(ACHIEVEMENTS.QUICK_START);
     }
 
-    // Word Master Progress - Enhanced unique words tracking
+    // Word Master Achievement
     const uniqueWords = new Set(
       translations
         .concat(newTranslation)
@@ -260,7 +227,7 @@ function App() {
       achievementsToUnlock.push(ACHIEVEMENTS.WORD_MASTER);
     }
 
-    // Daily Dedication - Improved date tracking
+    // Daily Dedication Achievement
     const uniqueDays = new Set(
       translations
         .concat(newTranslation)
@@ -271,14 +238,14 @@ function App() {
       achievementsToUnlock.push(ACHIEVEMENTS.DAILY_DEDICATION);
     }
 
-    // Achievement Processing with Animation Queue
+    // Process Achievements
     let delayOffset = 0;
     achievementsToUnlock.forEach(achievement => {
       if (!unlockedAchievements.includes(achievement.id)) {
         setTimeout(() => {
           unlockAchievement(achievement);
         }, delayOffset);
-        delayOffset += 1500; // Stagger achievements
+        delayOffset += 1500;
       }
     });
   };
@@ -294,17 +261,149 @@ function App() {
       setCurrentAchievement(achievement);
       setShowConfetti(true);
 
-      // Enhanced achievement notification
       setTimeout(() => {
         setCurrentAchievement(null);
         setTimeout(() => {
           setShowConfetti(false);
         }, 500);
-      }, 3000);
+      }, ACHIEVEMENT_DISPLAY_DURATION);
     }
   };
 
-return (
+  // Effects
+  useEffect(() => {
+    setCurrentExamples(getRandomExamples());
+  }, [getRandomExamples]);
+
+  useEffect(() => {
+    const saveInterval = setInterval(() => {
+      localStorage.setItem('translations', JSON.stringify(translations));
+      localStorage.setItem('score', score.toString());
+      localStorage.setItem('unlockedAchievements', JSON.stringify(unlockedAchievements));
+    }, SAVE_INTERVAL);
+
+    return () => clearInterval(saveInterval);
+  }, [translations, score, unlockedAchievements]);
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    root.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === 'Enter' && inputText && activeTab === 'translate') {
+        handleTranslate();
+      }
+    };
+
+    window.addEventListener('keypress', handleKeyPress);
+    return () => window.removeEventListener('keypress', handleKeyPress);
+  }, [inputText, activeTab]);
+
+  // Render Components
+  const renderExampleSection = () => (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.5 }}
+      className={`mt-8 p-4 rounded-lg ${
+        isDarkMode ? "bg-gray-700/30" : "bg-gray-100/30"
+      }`}
+    >
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium text-right">
+          דוגמאות לתרגום
+        </h3>
+        <motion.button
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+  onClick={refreshExamples}
+  disabled={isRefreshing}
+  className={`
+    p-2 rounded-full transition-all relative
+    ${isDarkMode 
+      ? "bg-gray-600 hover:bg-gray-500" 
+      : "bg-gray-200 hover:bg-gray-300"
+    }
+    ${isRefreshing ? 'cursor-not-allowed opacity-50' : ''}
+  `}
+>
+  <motion.div
+    initial={false}
+    animate={isRefreshing ? {
+      rotate: 360,
+      transition: {
+        duration: 1,
+        ease: "linear",
+        repeat: Infinity
+      }
+    } : { rotate: 0 }}
+  >
+    <RefreshCw className={`
+      w-5 h-5 refresh-button
+      ${isDarkMode ? "text-white" : "text-gray-600"}
+      ${isRefreshing ? 'opacity-50' : ''}
+    `} />
+  </motion.div>
+  
+  <motion.div
+    initial={{ scale: 0, opacity: 0 }}
+    animate={isRefreshing ? {
+      scale: [1, 1.5],
+      opacity: [0.3, 0],
+    } : { scale: 0, opacity: 0 }}
+    transition={{
+      duration: 0.5,
+      repeat: Infinity
+    }}
+    className={`
+      absolute inset-0 rounded-full
+      ${isDarkMode ? "bg-gray-400" : "bg-gray-300"}
+    `}
+  />
+</motion.button>
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentExamples.map(e => e.hebrew).join(',')}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="space-y-4"
+        >
+          {currentExamples.map((example, index) => (
+            <motion.div
+              key={example.hebrew}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1 }}
+              whileHover={{ scale: 1.02 }}
+              className={`p-3 rounded-lg ${
+                isDarkMode
+                  ? "bg-gray-800/50 hover:bg-gray-800/70"
+                  : "bg-white/50 hover:bg-white/70"
+              }`}
+            >
+              <p className="text-right mb-2 text-lg">{example.hebrew}</p>
+              <p className={`text-right ${
+                isDarkMode ? "text-yellow-400" : "text-yellow-600"
+              }`}>{example.sigma}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </AnimatePresence>
+    </motion.div>
+  );
+
+  return (
     <motion.div 
       className={`min-h-screen ${isDarkMode ? "dark" : ""}`}
       initial={{ opacity: 0 }}
@@ -313,11 +412,10 @@ return (
     >
       <InteractiveBackground />
       
-      {/* Gradient Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-white via-yellow-50/30 to-white dark:from-gray-900 dark:via-yellow-900/5 dark:to-gray-900 pointer-events-none" />
 
       <div className="relative container mx-auto px-4 py-6 sm:py-8">
-        {/* Header */}
+        {/* Header Section */}
         <motion.header 
           className="relative flex flex-col sm:flex-row justify-between items-center gap-4 mb-8"
           variants={pageTransition}
@@ -328,7 +426,7 @@ return (
             <motion.h1 
               className="text-3xl sm:text-4xl font-bold"
               initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 dark:from-yellow-300 dark:to-yellow-500">
@@ -339,6 +437,7 @@ return (
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Dark Mode Toggle */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -379,6 +478,7 @@ return (
               </motion.div>
             </motion.button>
 
+            {/* Score Badge */}
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -418,7 +518,7 @@ return (
           </div>
         </motion.header>
 
-{/* Main Content */}
+        {/* Main Content */}
         <motion.main
           variants={pageTransition}
           initial="hidden"
@@ -452,48 +552,58 @@ return (
                 className="w-full"
               >
                 <TabsList className="grid w-full grid-cols-3 bg-transparent p-1 mb-6 gap-2">
-                  {['translate', 'history', 'achievements'].map((tab) => (
-                    <TabsTrigger 
-                      key={tab}
-                      value={tab}
-                      className={`rounded-lg px-4 py-2.5 text-base font-medium transition-all relative overflow-hidden ${
-                        activeTab === tab
-                          ? isDarkMode
-                            ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900"
-                            : "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white"
-                          : isDarkMode
-                            ? "text-gray-300 hover:bg-gray-700/30"
-                            : "text-gray-600 hover:bg-gray-100/50"
-                      }`}
-                    >
-                      <motion.span
-                        initial={false}
-                        animate={{
-                          y: activeTab === tab ? 0 : 20,
-                          opacity: activeTab === tab ? 1 : 0.7
-                        }}
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      >
-                        {tab === 'translate' && 'תרגום'}
-                        {tab === 'history' && 'היסטוריה'}
-                        {tab === 'achievements' && 'הישגים'}
-                      </motion.span>
-                      
-                      {activeTab === tab && (
-                        <motion.div
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-current"
-                          layoutId="activeTab"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                        />
-                      )}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+  {['translate', 'history', 'achievements'].map((tab) => (
+    <TabsTrigger 
+      key={tab}
+      value={tab}
+      className={`
+        rounded-lg px-4 py-2.5 text-base font-medium transition-all 
+        relative overflow-hidden
+        ${activeTab === tab
+          ? isDarkMode
+            ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 shadow-lg"
+            : "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-lg"
+          : isDarkMode
+            ? "text-gray-300 hover:bg-gray-700/30 hover:text-gray-200"
+            : "text-gray-600 hover:bg-gray-100/50 hover:text-gray-800"
+        }
+      `}
+    >
+      <motion.span
+        initial={false}
+        animate={{
+          y: activeTab === tab ? 0 : 0,
+          opacity: activeTab === tab ? 1 : 0.7
+        }}
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      >
+        {tab === 'translate' && 'תרגום'}
+        {tab === 'history' && 'היסטוריה'}
+        {tab === 'achievements' && 'הישגים'}
+      </motion.span>
+      
+      {activeTab === tab && (
+        <motion.div
+          layoutId="activeTab"
+          className="absolute bottom-0 left-0 right-0 h-0.5"
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1,
+            background: isDarkMode 
+              ? "linear-gradient(to right, #fbbf24, #f59e0b)" 
+              : "linear-gradient(to right, #f59e0b, #d97706)"
+          }}
+          exit={{ opacity: 0, scale: 0 }}
+          transition={{ duration: 0.2 }}
+        />
+      )}
+    </TabsTrigger>
+  ))}
+</TabsList>
 
                 <TabsContent value="translate" className="space-y-6">
-                  {/* Direction Button - Right Aligned */}
+                  {/* Translation Direction Toggle */}
                   <div className="flex justify-start">
                     <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                       <Button
@@ -522,7 +632,7 @@ return (
                     </motion.div>
                   </div>
 
-{/* Input Field */}
+                  {/* Input Field */}
                   <motion.div 
                     className="relative"
                     whileHover={{ scale: 1.01 }}
@@ -627,45 +737,11 @@ return (
                     )}
                   </AnimatePresence>
 
-                  {/* Examples Section */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className={`mt-8 p-4 rounded-lg ${
-                      isDarkMode
-                        ? "bg-gray-700/30"
-                        : "bg-gray-100/30"
-                    }`}
-                  >
-                    <h3 className="text-lg font-medium mb-4 text-right">
-                      דוגמאות לתרגום
-                    </h3>
-                    <div className="space-y-4">
-                      {EXAMPLE_SENTENCES.map((example, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          whileHover={{ scale: 1.02 }}
-                          className={`p-3 rounded-lg ${
-                            isDarkMode
-                              ? "bg-gray-800/50 hover:bg-gray-800/70"
-                              : "bg-white/50 hover:bg-white/70"
-                          }`}
-                        >
-                          <p className="text-right mb-2 text-lg">{example.hebrew}</p>
-                          <p className={`text-right ${
-                            isDarkMode ? "text-yellow-400" : "text-yellow-600"
-                          }`}>{example.sigma}</p>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
+                  {/* Examples Section with Refresh */}
+                  {renderExampleSection()}
                 </TabsContent>
 
-{/* History Tab */}
+                {/* History Tab */}
                 <TabsContent value="history" className="h-[400px]">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className={`text-lg font-medium ${
@@ -674,6 +750,7 @@ return (
                       היסטוריית תרגומים
                     </h2>
                     
+                    {/* Clear History Dialog */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
@@ -694,6 +771,7 @@ return (
                           </Button>
                         </motion.div>
                       </AlertDialogTrigger>
+                      
                       <AlertDialogContent className={
                         isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white"
                       }>
@@ -724,6 +802,7 @@ return (
                     </AlertDialog>
                   </div>
 
+                  {/* Translation History List */}
                   <ScrollArea className="h-full pr-4">
                     {translations.length > 0 ? (
                       <motion.div 
@@ -808,7 +887,7 @@ return (
                   </ScrollArea>
                 </TabsContent>
 
-{/* Achievements Tab */}
+                {/* Achievements Tab */}
                 <TabsContent value="achievements" className="h-[400px]">
                   <ScrollArea className="h-full pr-4">
                     <div className="flex justify-end mb-4">
@@ -843,7 +922,7 @@ return (
                                   : ""
                             }`}
                           >
-                            {/* Achievement Background Animation */}
+                            {/* Achievement Card Content */}
                             {unlockedAchievements.includes(achievement.id) && (
                               <motion.div
                                 className="absolute inset-0 bg-gradient-to-r from-yellow-400/10 to-yellow-600/10"
@@ -943,6 +1022,7 @@ return (
                           </motion.div>
                         ))}
                         
+                        {/* Hidden Achievements Message */}
                         {unlockedAchievements.length < Object.keys(ACHIEVEMENTS).length && (
                           <motion.div
                             initial={{ opacity: 0 }}
@@ -975,10 +1055,10 @@ return (
           </Card>
         </motion.main>
 
-        {/* BrandSignature */}
+        {/* Brand Signature */}
         <BrandSignature />
 
-{/* Achievement Notification */}
+        {/* Achievement Notification */}
         <AnimatePresence>
           {currentAchievement && (
             <motion.div
@@ -991,6 +1071,7 @@ return (
                   : "bg-gradient-to-r from-yellow-500 to-yellow-600"
               }`}
             >
+              {/* Achievement Notification Content */}
               <div className="flex items-center gap-3 relative">
                 <motion.div
                   initial={{ opacity: 0, scale: 0 }}
@@ -1052,7 +1133,7 @@ return (
                   </motion.div>
                 </div>
 
-                {/* Sparkles Effect */}
+                {/* Achievement Sparkles Effect */}
                 {Array.from({ length: 5 }).map((_, i) => (
                   <motion.div
                     key={i}
@@ -1087,7 +1168,7 @@ return (
               exit={{ opacity: 0 }}
               className="fixed inset-0 pointer-events-none z-50"
             >
-              {Array.from({ length: 50 }).map((_, i) => (
+              {Array.from({ length: CONFETTI_PARTICLE_COUNT }).map((_, i) => (
                 <motion.div
                   key={i}
                   className="absolute w-2 h-2 rounded-full"
@@ -1120,6 +1201,6 @@ return (
       </div>
     </motion.div>
   );
-}
+};
 
 export default App;

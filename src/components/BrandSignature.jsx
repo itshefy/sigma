@@ -1,228 +1,145 @@
-// src/components/BrandSignature.jsx
-
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-// תמונת הפרופיל מתיקיית public
+import { LazyLoadImage } from 'react-lazy-load-image-component';
 import profileImage from '/images/signature-image.png';
 
-export const BrandSignature = () => {
-  const glowVariants = {
+export const BrandSignature = memo(() => {
+  // Predefine animations for better performance
+  const sigmaVariants = {
     animate: {
-      opacity: [0.5, 1, 0.5],
-      scale: [1, 1.2, 1],
-      transition: {
-        duration: 3,
+      rotate: [0, 360],
+      scale: [1, 1.05, 1]
+    },
+    transition: {
+      rotate: {
+        duration: 12,
+        repeat: Infinity,
+        ease: "linear"
+      },
+      scale: {
+        duration: 4,
         repeat: Infinity,
         ease: "easeInOut"
       }
     }
   };
 
-  const shimmerVariants = {
+  const shineVariants = {
     animate: {
-      x: ['-100%', '100%'],
-      transition: {
-        duration: 3,
-        repeat: Infinity,
-        ease: "linear"
-      }
+      x: ['-100%', '200%']
+    },
+    transition: {
+      duration: 3,
+      repeat: Infinity,
+      ease: "linear",
+      repeatDelay: 2
+    }
+  };
+
+  const checkVariants = {
+    initial: { scale: 1 },
+    animate: {
+      scale: [1, 1.1, 1],
+      y: [-1, 1, -1]
+    },
+    transition: {
+      duration: 3,
+      repeat: Infinity,
+      ease: "easeInOut",
+      repeatDelay: 1
     }
   };
 
   return (
-    <motion.div
-      className="fixed bottom-0 left-0 right-0 p-4 flex justify-center items-center z-10"
+    <motion.div 
+      className="fixed bottom-4 left-4 z-50"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ delay: 0.5 }}
     >
-      <div className="relative">
-        {/* Backdrop Blur and Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-white/80 to-transparent dark:from-gray-900/80 backdrop-blur-sm rounded-2xl" />
-
-        {/* Main Container */}
-        <motion.div
-          className="relative flex items-center gap-4 px-8 py-4 rounded-2xl"
-          whileHover={{ scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        >
-          {/* Background Effects */}
-          <motion.div
-            className="absolute inset-0 rounded-2xl opacity-20"
-            style={{
-              background: 'linear-gradient(90deg, #ffd700, #daa520, #ffd700)',
-              filter: 'blur(4px)'
-            }}
-            variants={glowVariants}
-            animate="animate"
-          />
-
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-white/5 to-yellow-500/5 dark:from-black/5 dark:to-yellow-500/10 rounded-2xl overflow-hidden"
+      <div className="bg-white/10 dark:bg-gray-800/10 backdrop-blur-[2px] px-4 py-3 rounded-xl shadow-md">
+        <div className="relative flex items-center gap-4">
+          {/* Animated Sigma */}
+          <motion.span
+            className="text-2xl font-serif text-[#daa520]"
+            animate={sigmaVariants.animate}
+            transition={sigmaVariants.transition}
           >
-            <motion.div
-              className="absolute inset-0 w-[200%] bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent"
-              variants={shimmerVariants}
-              animate="animate"
-            />
-          </motion.div>
+            Σ
+          </motion.span>
 
-          {/* Content */}
-          <div className="relative flex items-center gap-4">
-            {/* שפי */}
-            <motion.span
+          <span className="text-xl font-serif text-[#daa520]/80">=</span>
+
+          <div className="relative">
+            {/* Text */}
+            <span
               className="text-2xl font-semibold"
               style={{
                 background: 'linear-gradient(to right, #daa520, #ffd700)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}
-              whileHover={{ scale: 1.1 }}
             >
               שפי
-            </motion.span>
-
-            <motion.span
-              className="text-xl"
-              style={{ 
-                color: 'rgba(218,165,32,0.8)',
-                textShadow: '0 0 5px rgba(218,165,32,0.3)'
-              }}
-            >
-              =
-            </motion.span>
-
-            {/* Animated Sigma */}
-            <div className="relative">
-              <motion.span
-                className="text-2xl font-serif"
-                animate={{
-                  rotate: [0, 360],
-                  y: [-2, 2, -2],
-                  scale: [1, 1.1, 1],
-                }}
-                transition={{
-                  rotate: {
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: "linear"
-                  },
-                  y: {
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  },
-                  scale: {
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }
-                }}
-                style={{ 
-                  color: '#daa520',
-                  textShadow: '0 0 8px rgba(218,165,32,0.4)'
-                }}
-              >
-                Σ
-              </motion.span>
-
-              {/* Underline Effect */}
+            </span>
+            
+            {/* Underline with Shine Effect */}
+            <div className="absolute -bottom-1 left-0 right-0 h-[2px] bg-gradient-to-r from-[#daa520] to-[#ffd700]">
               <motion.div
-                className="absolute -bottom-1 left-0 right-0 h-[2px] rounded-full"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 1 }}
+                className="absolute top-0 left-0 h-full w-1/2"
                 style={{
-                  background: 'linear-gradient(to right, #daa520, #ffd700)'
+                  background: 'linear-gradient(to right, transparent, rgba(255,215,0,0.3), transparent)',
                 }}
+                animate={shineVariants.animate}
+                transition={shineVariants.transition}
               />
-
-              {/* Verification Mark */}
-              <motion.span
-                className="absolute -right-4 -top-1 text-lg"
-                initial={{ scale: 0, rotate: -30 }}
-                animate={{ 
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 5, 0]
-                }}
-                transition={{
-                  scale: {
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  },
-                  rotate: {
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }
-                }}
-                style={{
-                  color: '#4CAF50',
-                  textShadow: '0 0 5px rgba(76,175,80,0.3)',
-                  transformOrigin: 'center bottom'
-                }}
-              >
-                ✓
-              </motion.span>
             </div>
-
-            {/* Profile Image */}
-            <motion.div
-              className="relative ml-3"
-              whileHover={{ scale: 1.05 }}
-              transition={{ duration: 0.2 }}
+            
+            {/* Checkmark */}
+            <motion.span
+              className="absolute -right-4 -top-1 text-lg text-[#4CAF50]"
+              variants={checkVariants}
+              initial="initial"
+              animate="animate"
+              transition={checkVariants.transition}
             >
-              {/* Image Glow */}
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                animate={{
-                  opacity: [0.3, 0.6, 0.3],
-                  scale: [1, 1.1, 1]
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                style={{
-                  background: 'linear-gradient(45deg, #daa520, #ffd700)',
-                  filter: 'blur(3px)'
-                }}
-              />
-
-              {/* Image */}
-              <motion.div className="relative">
-                <motion.img
-                  src={profileImage}
-                  alt="Profile"
-                  className="relative w-12 h-12 rounded-full object-cover ring-2 ring-yellow-500/30"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  style={{
-                    filter: 'contrast(1.1) brightness(1.1)'
-                  }}
-                />
-                
-                {/* Rotating Border */}
-                <motion.div
-                  className="absolute -inset-1 rounded-full"
-                  animate={{ rotate: 360 }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: "linear"
-                  }}
-                  style={{
-                    background: 'conic-gradient(from 0deg, transparent, #ffd700 20%, transparent 40%)',
-                    opacity: 0.5
-                  }}
-                />
-              </motion.div>
-            </motion.div>
+              ✓
+            </motion.span>
           </div>
-        </motion.div>
+
+          {/* Profile Image with Ring Effect */}
+          <div className="relative ml-3">
+            <motion.div
+              className="absolute -inset-1 rounded-full opacity-20"
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 12,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+              style={{
+                background: 'conic-gradient(from 0deg, transparent, #ffd700, transparent)',
+              }}
+            />
+            
+            <LazyLoadImage
+              src={profileImage}
+              alt="Profile"
+              width={48}
+              height={48}
+              className="relative rounded-full object-cover ring-1 ring-yellow-500/20"
+              effect="opacity"
+              placeholder={
+                <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />
+              }
+            />
+          </div>
+        </div>
       </div>
     </motion.div>
   );
-};
+});
+
+BrandSignature.displayName = 'BrandSignature';
+
+export default BrandSignature;

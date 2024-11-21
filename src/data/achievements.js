@@ -1,4 +1,3 @@
-// src/lib/dictionaries/sigma.js
 
 export const SIGMA_DICTIONARY = {
   // ביטויי יסוד ומטבעות לשון
