@@ -21,16 +21,35 @@ import {
   AlertDialogCancel,
 } from './components/ui/alert-dialog';
 
-// Custom Components
-import BrandSignature from './components/BrandSignature';  // שימו לב: רק ייבוא אחד
-import { InteractiveBackground } from './components/InteractiveBackground';
-import { OriginalBadge } from './components/OriginalBadge';
-import { ShareResults } from './components/ShareResults';
+// Layout Components
+import BrandSignature from './components/layout/BrandSignature';
+import InteractiveBackground from './components/layout/InteractiveBackground';
+
+// Feature Components
+import { ExampleCard } from './components/features/translator/ExampleCard';
+import { TranslationInput } from './components/features/translator/TranslationInput';
+import { TranslationOutput } from './components/features/translator/TranslationOutput';
+import AchievementCard from './components/features/achievements/AchievementCard';
+import AchievementNotification from './components/features/achievements/AchievementNotification';
+import HistoryList from './components/features/history/HistoryList';
+
+// Shared Components
+import OriginalBadge from './components/shared/OriginalBadge';
+import ShareResults from './components/shared/ShareResults';
+
+// Effects
+import Confetti from './components/effects/Confetti';
+
 
 // Data & Utils
 import { SIGMA_DICTIONARY } from './lib/dictionaries/sigma';
 import { ACHIEVEMENTS } from './lib/constants/achievements';
 import { EXAMPLE_SENTENCES } from './lib/constants/examples';
+
+// Hooks
+import { useLocalStorage } from './lib/hooks/useLocalStorage';
+import { useDebounce } from './lib/hooks/useDebounce';
+import { useTheme } from './context/ThemeContext';
 
 // Constants
 const EXAMPLES_TO_SHOW = 3;

@@ -1,10 +1,12 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
+import { useTheme } from '../../context/ThemeContext';
 import profileImage from '/images/signature-image.png';
 
-export const BrandSignature = memo(() => {
-  // Predefine animations for better performance
+const BrandSignature = memo(() => {
+  const { isDarkMode } = useTheme();
+
   const sigmaVariants = {
     animate: {
       rotate: [0, 360],
@@ -36,20 +38,6 @@ export const BrandSignature = memo(() => {
     }
   };
 
-  const checkVariants = {
-    initial: { scale: 1 },
-    animate: {
-      scale: [1, 1.1, 1],
-      y: [-1, 1, -1]
-    },
-    transition: {
-      duration: 3,
-      repeat: Infinity,
-      ease: "easeInOut",
-      repeatDelay: 1
-    }
-  };
-
   return (
     <motion.div 
       className="fixed bottom-4 left-4 z-50"
@@ -59,7 +47,7 @@ export const BrandSignature = memo(() => {
     >
       <div className="bg-white/10 dark:bg-gray-800/10 backdrop-blur-[2px] px-4 py-3 rounded-xl shadow-md">
         <div className="relative flex items-center gap-4">
-          {/* Animated Sigma */}
+          {/* Sigma Symbol */}
           <motion.span
             className="text-2xl font-serif text-[#daa520]"
             animate={sigmaVariants.animate}
@@ -67,8 +55,6 @@ export const BrandSignature = memo(() => {
           >
             Σ
           </motion.span>
-
-          <span className="text-xl font-serif text-[#daa520]/80">=</span>
 
           <div className="relative">
             {/* Text */}
@@ -83,7 +69,7 @@ export const BrandSignature = memo(() => {
               שפי
             </span>
             
-            {/* Underline with Shine Effect */}
+            {/* Animated Underline */}
             <div className="absolute -bottom-1 left-0 right-0 h-[2px] bg-gradient-to-r from-[#daa520] to-[#ffd700]">
               <motion.div
                 className="absolute top-0 left-0 h-full w-1/2"
@@ -95,19 +81,25 @@ export const BrandSignature = memo(() => {
               />
             </div>
             
-            {/* Checkmark */}
+            {/* Verification Mark */}
             <motion.span
               className="absolute -right-4 -top-1 text-lg text-[#4CAF50]"
-              variants={checkVariants}
-              initial="initial"
-              animate="animate"
-              transition={checkVariants.transition}
+              animate={{
+                scale: [1, 1.1, 1],
+                y: [-1, 1, -1]
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+                repeatDelay: 1
+              }}
             >
               ✓
             </motion.span>
           </div>
 
-          {/* Profile Image with Ring Effect */}
+          {/* Profile Image */}
           <div className="relative ml-3">
             <motion.div
               className="absolute -inset-1 rounded-full opacity-20"
@@ -132,6 +124,7 @@ export const BrandSignature = memo(() => {
               placeholder={
                 <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />
               }
+              loading="lazy"
             />
           </div>
         </div>
@@ -142,4 +135,4 @@ export const BrandSignature = memo(() => {
 
 BrandSignature.displayName = 'BrandSignature';
 
-export default BrandSignature;
+export default BrandSignature;  
